@@ -41,14 +41,32 @@ class SecureDeleter:
             for root, dirs, files in os.walk(folder_path, topdown=False):
                 for name in files:
                     file_path = os.path.join(root, name)
-                    encrypted_data = fernet.encrypt(original_data)
+                    try:
+                        # Read the original file contents
+                        with open(file_path, "rb") as file:
+                            original_data = file.read()
 
-                    # Overwrite the file with encrypted data
-                    with open(file_path, "wb") as file:
-                        file.write(encrypted_data)
-                    self.delete_file(file_path)
+                        # Encrypt the file contents
+                        encrypted_data = fernet.encrypt(original_data)
+
+                        # Overwrite the file with encrypted data
+                        with open(file_path, "wb") as file:
+                            file.write(encrypted_data)
+
+                        # Securely delete the file
+                        self.delete_file(file_path)
+                    except Exception as e:
+                        print(f"Error processing file {file_path}: {e}")
+
+                # Remove empty directories
                 for name in dirs:
-                    os.rmdir(os.path.join(root, name))
+                    dir_path = os.path.join(root, name)
+                    try:
+                        os.rmdir(dir_path)
+                    except Exception as e:
+                        print(f"Error removing directory {dir_path}: {e}")
+
+            # Finally remove the root folder
             shutil.rmtree(folder_path)
 
     # def wipe_free_space(self, drive, size=1024*1024*10): # 10MB default file size
@@ -155,19 +173,28 @@ def main():
     print(
         "Welcome to the file deleter. This program will overwrite and encrypt the contents in a file. RECOVERY IS NOT POSSIBLE"
     )
-    user_path = input("Please enter the path to the file: \n")
-    time_start = time.time()
-    encrypt_stuff = func(user_path)
-    deleter = SecureDeleter(user_path)
-    deleter.execute()
-    time_end = time.time()
-    elapsed_time = time_end - time_start
-    hours, rem = divmod(elapsed_time, 3600)
-    minutes, seconds = divmod(rem, 60)
-    milliseconds = (seconds % 1) * 1000
     print(
-        f"It took, {int(hours)}h {int(minutes)}m {int(seconds)}s {int(milliseconds)}ms"
+        "By typing yes you are aware that the contents will be deleted and can not be recovered"
     )
+    usr_input = input("Type yes if you are aware:")
+    if usr_input.lower() == "yes":
+        user_path = input("Please enter the path to the file: \n")
+        time_start = time.time()
+        encrypt_stuff = func(user_path)
+        deleter = SecureDeleter(user_path)
+        deleter.execute()
+        time_end = time.time()
+        elapsed_time = time_end - time_start
+        hours, rem = divmod(elapsed_time, 3600)
+        minutes, seconds = divmod(rem, 60)
+        milliseconds = (seconds % 1) * 1000
+        print(
+            f"It took, {int(hours)}h {int(minutes)}m {int(seconds)}s {int(milliseconds)}ms"
+        )
+    elif usr_input.lower() == "no":
+        print("closing program")
+    else:
+        print("enter yes or no")
 
 
 main()
